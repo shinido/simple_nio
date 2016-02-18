@@ -28,60 +28,7 @@ public class Main {
 
         client();
     }
-
-    public static void client() throws IOException {
-        Selector selector = Selector.open();
-        SocketChannel socketCh = SocketChannel.open();
-        socketCh.configureBlocking(false);
-        socketCh.connect(new InetSocketAddress("localhost", PORT));
-        socketCh.register(selector, SelectionKey.OP_CONNECT);
-        ByteBuffer buffer = ByteBuffer.allocate(SIZE);
-        Random rand = new Random();
-        while(buffer.hasRemaining()){
-            buffer.put((byte) (rand.nextInt() % 128));
-        }
-        buffer.flip();
-
-        loop:while(true){
-            selector.select();
-            Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
-            while(keys.hasNext()){
-                SelectionKey key = keys.next();
-                keys.remove();
-
-                if(key.isConnectable()){
-                    if(!socketCh.finishConnect()){
-                        throw new IOException("Connect Fail");
-                    }
-                    System.out.println("CLIENT: Connected");
-                    socketCh.register(selector, SelectionKey.OP_WRITE);
-                }
-
-                if(key.isWritable()){
-                    socketCh.write(buffer);
-                    if(!buffer.hasRemaining()){
-                        System.out.println("CLIENT: Write "+ Arrays.toString(buffer.array()));
-                        ByteBuffer readBuf = ByteBuffer.allocate(SIZE);
-                        socketCh.register(selector, SelectionKey.OP_READ, readBuf);
-                    }
-                }
-
-                if(key.isReadable()){
-                    ByteBuffer readBuf = (ByteBuffer) key.attachment();
-                    socketCh.read(readBuf);
-                    if(!readBuf.hasRemaining()){
-                        System.out.println("CLIENT: Read  "+ Arrays.toString(readBuf.array()));
-                    }
-                    socketCh.close();
-                    break loop;
-                }
-            }
-        }
-        selector.close();
-        System.out.println("CLIENT: Done");
-    }
-
-
+    
     public static void server() throws IOException {
         Selector selector = Selector.open();
         ServerSocketChannel serverCh = ServerSocketChannel.open();
@@ -140,5 +87,58 @@ public class Main {
             }
         }
         selector.close();
+    }
+    
+    
+    public static void client() throws IOException {
+        Selector selector = Selector.open();
+        SocketChannel socketCh = SocketChannel.open();
+        socketCh.configureBlocking(false);
+        socketCh.connect(new InetSocketAddress("localhost", PORT));
+        socketCh.register(selector, SelectionKey.OP_CONNECT);
+        ByteBuffer buffer = ByteBuffer.allocate(SIZE);
+        Random rand = new Random();
+        while(buffer.hasRemaining()){
+            buffer.put((byte) (rand.nextInt() % 128));
+        }
+        buffer.flip();
+
+        loop:while(true){
+            selector.select();
+            Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+            while(keys.hasNext()){
+                SelectionKey key = keys.next();
+                keys.remove();
+
+                if(key.isConnectable()){
+                    if(!socketCh.finishConnect()){
+                        throw new IOException("Connect Fail");
+                    }
+                    System.out.println("CLIENT: Connected");
+                    socketCh.register(selector, SelectionKey.OP_WRITE);
+                }
+
+                if(key.isWritable()){
+                    socketCh.write(buffer);
+                    if(!buffer.hasRemaining()){
+                        System.out.println("CLIENT: Write "+ Arrays.toString(buffer.array()));
+                        ByteBuffer readBuf = ByteBuffer.allocate(SIZE);
+                        socketCh.register(selector, SelectionKey.OP_READ, readBuf);
+                    }
+                }
+
+                if(key.isReadable()){
+                    ByteBuffer readBuf = (ByteBuffer) key.attachment();
+                    socketCh.read(readBuf);
+                    if(!readBuf.hasRemaining()){
+                        System.out.println("CLIENT: Read  "+ Arrays.toString(readBuf.array()));
+                    }
+                    socketCh.close();
+                    break loop;
+                }
+            }
+        }
+        selector.close();
+        System.out.println("CLIENT: Done");
     }
 }
